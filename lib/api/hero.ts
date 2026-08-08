@@ -1,11 +1,9 @@
 const ADMIN_API_URL =
-  process.env.NEXT_PUBLIC_ADMIN_API_URL;
+  process.env.NEXT_PUBLIC_ADMIN_API_URL ||
+  "http://localhost:3000";
 
 export type SocialLink = {
-  platform:
-    | "facebook"
-    | "instagram"
-    | "linkedin";
+  platform: "facebook" | "instagram" | "linkedin";
   url: string;
   enabled: boolean;
 };
@@ -18,9 +16,13 @@ export type HeroButton = {
 
 export type HeroSlide = {
   _id?: string;
+
   eyebrow: string;
+
   title: string;
+
   description: string;
+
   backgroundImage: string;
 
   primaryButton: HeroButton;
@@ -30,6 +32,7 @@ export type HeroSlide = {
   socialLinks: SocialLink[];
 
   order: number;
+
   isActive: boolean;
 };
 
@@ -41,6 +44,7 @@ export type Hero = {
   isPublished: boolean;
 
   createdAt?: string;
+
   updatedAt?: string;
 };
 
@@ -50,33 +54,12 @@ export type Hero = {
 
 export async function getHero(): Promise<Hero | null> {
   try {
-    /* -----------------------------------------------------
-       CHECK ENVIRONMENT VARIABLE
-    ----------------------------------------------------- */
-
-    if (!ADMIN_API_URL) {
-      console.error(
-        "❌ NEXT_PUBLIC_ADMIN_API_URL is missing"
-      );
-
-      return null;
-    }
-
-    /* -----------------------------------------------------
-       BUILD API URL
-    ----------------------------------------------------- */
-
-    const apiUrl =
-      `${ADMIN_API_URL}/api/hero`;
+    const apiUrl = `${ADMIN_API_URL}/api/hero`;
 
     console.log(
       "🔵 Fetching Hero from:",
       apiUrl
     );
-
-    /* -----------------------------------------------------
-       FETCH ADMIN API
-    ----------------------------------------------------- */
 
     const response = await fetch(apiUrl, {
       method: "GET",
@@ -93,13 +76,12 @@ export async function getHero(): Promise<Hero | null> {
       response.status
     );
 
-    /* -----------------------------------------------------
-       HANDLE HTTP ERROR
-    ----------------------------------------------------- */
+    /* =====================================================
+       HTTP ERROR
+    ===================================================== */
 
     if (!response.ok) {
-      const errorText =
-        await response.text();
+      const errorText = await response.text();
 
       console.error(
         "❌ Hero API HTTP error:",
@@ -110,21 +92,20 @@ export async function getHero(): Promise<Hero | null> {
       return null;
     }
 
-    /* -----------------------------------------------------
+    /* =====================================================
        PARSE RESPONSE
-    ----------------------------------------------------- */
+    ===================================================== */
 
-    const result =
-      await response.json();
+    const result = await response.json();
 
     console.log(
       "🟢 Hero API response:",
       result
     );
 
-    /* -----------------------------------------------------
-       HANDLE API ERROR
-    ----------------------------------------------------- */
+    /* =====================================================
+       API ERROR
+    ===================================================== */
 
     if (!result.success) {
       console.error(
@@ -135,41 +116,67 @@ export async function getHero(): Promise<Hero | null> {
       return null;
     }
 
-    /* -----------------------------------------------------
+    /* =====================================================
        VALIDATE DATA
-    ----------------------------------------------------- */
+    ===================================================== */
 
-    if (!result.data) {
+    if (!Array.isArray(result.data)) {
       console.error(
-        "❌ Hero API returned no data"
-      );
-
-      return null;
-    }
-
-    if (
-      !Array.isArray(
-        result.data.slides
-      )
-    ) {
-      console.error(
-        "❌ Hero API data.slides is not an array:",
+        "❌ Hero API data is not an array:",
         result.data
       );
 
       return null;
     }
 
-    /* -----------------------------------------------------
+    /* =====================================================
+       GET ACTIVE / PUBLISHED HERO
+    ===================================================== */
+
+    const hero = result.data.find(
+      (item: Hero) =>
+        item.isPublished === true
+    );
+
+    if (!hero) {
+      console.error(
+        "❌ No published Hero found"
+      );
+
+      return null;
+    }
+
+    /* =====================================================
+       VALIDATE SLIDES
+    ===================================================== */
+
+    if (!Array.isArray(hero.slides)) {
+      console.error(
+        "❌ Hero slides is not an array:",
+        hero
+      );
+
+      return null;
+    }
+
+    if (hero.slides.length === 0) {
+      console.error(
+        "❌ Hero has no slides"
+      );
+
+      return null;
+    }
+
+    /* =====================================================
        SUCCESS
-    ----------------------------------------------------- */
+    ===================================================== */
 
     console.log(
       "✅ Hero fetched successfully:",
-      result.data
+      hero
     );
 
-    return result.data;
+    return hero;
   } catch (error) {
     console.error(
       "❌ Hero API request failed:",
